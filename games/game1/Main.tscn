@@ -1,0 +1,12 @@
+[gd_scene load_steps=3 format=3 uid="uid://chad4lswc0ao2"]
+
+[ext_resource type="Script" path="res://games/game1/scripts/Main.gd" id="1_qjrqe"]
+[ext_resource type="Script" path="res://scripts/Lobby.gd" id="2_v2avb"]
+
+[node name="Main" type="Node"]
+script = ExtResource("1_qjrqe")
+
+[node name="Lobby" type="Node" parent="."]
+script = ExtResource("2_v2avb")
+
+[connection signal="lobby_created" from="Lobby" to="." method="_on_lobby_lobby_created"]
