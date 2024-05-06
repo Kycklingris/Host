@@ -16,7 +16,7 @@ func _ready():
 	# Add "Connecting" loading screen to scene hierarchy
 	currentChild = loadingScreen;
 	main.add_child(loadingScreen);
-	lobby.new_lobby("testing", 5, 2);
+	lobby.new_lobby("testing", 10, 2);
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(_delta):

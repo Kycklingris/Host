@@ -19,6 +19,7 @@ offset_bottom = 89.0
 text = "YAAAYU1"
 
 [node name="Players" type="VBoxContainer" parent="."]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -31,15 +32,3 @@ offset_right = 193.0
 offset_bottom = 157.5
 grow_horizontal = 2
 grow_vertical = 2
-
-[node name="Button" type="Button" parent="."]
-unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 4
-anchor_top = 0.5
-anchor_bottom = 0.5
-offset_top = -15.0
-offset_right = 150.0
-offset_bottom = 16.0
-grow_vertical = 2
-text = "Send Alert"

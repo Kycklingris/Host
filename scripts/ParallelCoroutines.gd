@@ -22,14 +22,15 @@ var _completed_count:int = 0;
 ## results will contain null values for coroutines with no return value.
 var results:Array = [];
 
+func _default_callback(_result):
+	pass;
+	
 ## Adds a coroutine to be started when run_all() is called.
 ## coroutine must be an asynchronous method i.e. it must call await at least once.
 ## callback can be provided if you wish to immediately act upon coroutine's completion.
 ## callback will be called with the result returned by coroutine.
 ## If coroutine does not return a value, the result will be null.
-@warning_ignore('standalone_expression')
-func append(coroutine:Callable, parameters: Array = [], callback:Callable = func(_result):{}) -> ParallelCoroutines:
-	@warning_ignore('standalone_expression') #does nothing for the warning thrown by the default lambda :(
+func append(coroutine:Callable, parameters: Array = [], callback:Callable = _default_callback) -> ParallelCoroutines:
 	_queued_coroutines.append(QueuedCoroutine.new(coroutine, parameters, callback));
 	return self;
 
@@ -41,7 +42,7 @@ func run_all() -> Signal:
 	for _queued in _queued_coroutines:
 		_run(_queued);
 	return completed;
-		
+	
 func _run(routine:QueuedCoroutine) -> void:
 	var result = await routine.coroutine.callv(routine.parameters);
 	results.append(result);
