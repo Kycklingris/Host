@@ -9,8 +9,6 @@ signal player_joined(player: Player);
 @export var max_players: int = 0;
 @export var min_players: int = 0;
 
-var PlayerPreload = preload("res://scripts/Player.gd");
-
 var placeholder_players: Array[Player];
 var current_sdp_ready_count: int = 0;
 var turn_password: String = "";
@@ -24,17 +22,49 @@ var polling = false;
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
-	http_request = HTTPRequest.new();
-	self.add_child(http_request);
+	self.http_request = HTTPRequest.new();
+	self.add_child(self.http_request);
+	self.get_tree().set_auto_accept_quit(false);
+	self.tree_exiting.connect(self._exit_tree);
 	
+	return;
+
+func _notification(notif):
+	if notif == NOTIFICATION_WM_CLOSE_REQUEST:
+		await self._delete();
+		self.get_tree().quit();
+	return;
+
+func _exit_tree():
+	await self._delete();
+	self.get_tree().set_auto_accept_quit(true);
+	return;
+
+## Delete the lobby on server
+func _delete():
+	if self.current_state == LobbyState.NOT_INITIALIZED:
+		return;
+	self.http_request.request(Globals.CreateHTTPRequest(
+		Globals.api_url, 
+		"/api/Lobby/Delete", 
+		[
+			{ "name": "lobbyId", "value": self.id }, 
+			{ "name": "turnPassword", "value": self.turn_password }
+		]), 
+		["accept: text/plain", "Content-Type: text/plain"], 
+		HTTPClient.METHOD_DELETE
+	);
+	
+	var result = await http_request.request_completed;
+	print("Deleted lobby, Status Code: ", str(result[1]));
 	return;
 
 func new_lobby(game: String, maxPlayers: int, minPlayers: int):
 	#=========================================================================#
 	# Send "Create Lobby" request to the Web Server.
 	#=========================================================================#
-	http_request.request($"/root/Globals".CreateHTTPRequest(
-		$"/root/Globals".api_url, 
+	http_request.request(Globals.CreateHTTPRequest(
+		Globals.api_url, 
 		"/api/Lobby/New", 
 		[
 			{ "name": "game", "value": game }, 
@@ -82,7 +112,7 @@ func new_lobby(game: String, maxPlayers: int, minPlayers: int):
 	
 	var promise = Promise.new();
 	for i in max_players:
-		var new_player = PlayerPreload.new(id, id, turn_password, i); 
+		var new_player = Player.new(id, id, turn_password, i);
 		self.add_child(new_player);
 		placeholder_players.push_back(new_player);
 		new_player._connected.connect(self._player_connected);
@@ -94,8 +124,8 @@ func new_lobby(game: String, maxPlayers: int, minPlayers: int):
 	# Set lobby state
 	#=========================================================================#
 	
-	http_request.request($"/root/Globals".CreateHTTPRequest(
-		$"/root/Globals".api_url, 
+	http_request.request(Globals.CreateHTTPRequest(
+		Globals.api_url, 
 		"/api/Lobby/SetState", 
 		[
 			{ "name": "lobbyId", "value": id }, 
@@ -117,5 +147,4 @@ func _player_connected(player: Player):
 
 func _lobby_created():
 	lobby_created.emit();
-	
 	return;
