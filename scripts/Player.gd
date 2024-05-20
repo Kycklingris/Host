@@ -33,16 +33,16 @@ func set_text_content(p_selector: String, p_content: String):
 	self.internal._set_text_content(p_selector, p_content);
 	return;
 
-func send_packet(packet: PackedByteArray, wait_for_page: bool):
-	self.internal._send_packet(packet, wait_for_page);
+func send_packet(p_packet: PackedByteArray, wait_for_page: bool):
+	self.internal._send_packet(p_packet, wait_for_page);
 	return;
 
 func send_magic(magic: int, wait_for_page: bool):
 	self.internal._send_magic(magic, wait_for_page);
 	return;
 
-func prepend_and_send(magic: int, packet: PackedByteArray, wait_for_page: bool):
-	self.internal._prepend_and_send(magic, packet, wait_for_page);
+func prepend_and_send(magic: int, p_packet: PackedByteArray, wait_for_page: bool):
+	self.internal._prepend_and_send(magic, p_packet, wait_for_page);
 	return;
 
 class _Internal:
@@ -201,6 +201,8 @@ class _Internal:
 		return;
 	
 	func _on_packet(magic: int, packet: PackedByteArray):
+		print("Magic: " + str(magic) + ", Packet: " + packet.get_string_from_utf8());
+		
 		match magic:
 			_Channel._InternalMagicByte.USERNAME:
 				self.first_connection = false;

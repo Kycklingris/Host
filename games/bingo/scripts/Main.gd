@@ -5,7 +5,7 @@ const GAME_NAME = "bingo";
 const MAX_PLAYERS = 10;
 const MIN_PLAYERS = 2;
 
-enum Packets { Start = 0, Predictions = 1 };
+enum Packets { Start = 0, Predictions = 1, TextPrompt = 2, TextPromptAnswer = 3, TextPromptChoice = 4 };
 
 @onready var lobby: Lobby = $Lobby;
 
@@ -49,8 +49,9 @@ func start_event(magic, _packet):
 		return;
 	
 	self.lobby.start();
-	self.get_predictions();
-	self.fill_in_text_prompt();
+	await self.get_predictions();
+	await self.text_prompt();
+	
 	return;
 
 func select_bingo_player():
@@ -76,7 +77,24 @@ func get_predictions():
 	await self.wait_for_player_task(60.0);
 	return;
 
-func fill_in_text_prompt():
+func text_prompt():
+	for player in self.players:
+		player.fill_in_text_prompt();
+	
+	await self.wait_for_player_task(60.0);
+	await Engine.get_main_loop().process_frame
+	
+	for player in self.players:
+		player.answer_text_prompt();
+	
+	await self.wait_for_player_task(60.0);
+	await Engine.get_main_loop().process_frame
+	
+	for player in self.players:
+		player.select_text_prompt();
+	
+	await self.wait_for_player_task(60.0);
+	await Engine.get_main_loop().process_frame
 	
 	return;
 
