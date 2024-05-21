@@ -12,6 +12,7 @@ enum Packets { Start = 0, Predictions = 1, TextPrompt = 2, TextPromptAnswer = 3,
 var loadingScreen = preload("res://games/bingo/LobbyLoadingScreen.tscn").instantiate();
 var lobbyScreen = preload("res://games/bingo/Lobby.tscn").instantiate();
 var waitScreen = preload("res://games/bingo/Waiting.tscn");
+var votingScreen = preload("res://games/bingo/Voting.tscn");
 
 var players: Array[BingoPlayer] = [];
 
@@ -95,6 +96,12 @@ func text_prompt():
 	
 	await self.wait_for_player_task(60.0);
 	await Engine.get_main_loop().process_frame
+	
+	self._swap_child(self.votingScreen.instantiate());
+	for player in self.players:
+		self.current_child.add_player(player);
+	
+	await self.current_child.Complete;
 	
 	return;
 
