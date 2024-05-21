@@ -1,27 +1,32 @@
-class_name Lobby extends Node
+class_name LobbyV1
+extends Node
 var _internal: _Internal;
 
 signal lobby_created;
 signal player_joined(player: Player);
 
-@export var id: String;
-@export var max_players: int = 0;
-@export var min_players: int = 0;
-@export var players: Array[Player];
-@export var has_started: bool = false;
+var id: String;
+var max_players: int = 0;
+var min_players: int = 0;
+var players: Array[Player];
+var has_started: bool = false;
+var game: String = "";
 
 enum LobbyState { NOT_INITIALIZED, FAILED, LOBBY_CREATED, LOBBY_SDP_SET }
 var current_state: LobbyState = LobbyState.NOT_INITIALIZED;
+
+func _init(p_game: String, p_min_players: int, p_max_players: int, _allow_audience: bool):
+	self.game = p_game;
+	self.min_players = p_min_players;
+	self.max_players = p_max_players;
+	return
 
 func _ready():
 	var http_request = HTTPRequest.new();
 	self.add_child(http_request);
 	self._internal = _Internal.new(self, http_request);
 	
-	return;
-
-func new_lobby(game: String, p_max_players: int, p_min_players: int):
-	self._internal._new_lobby(game, p_max_players, p_min_players);
+	self._internal._new_lobby(self.game, self.max_players, self.min_players);
 	return;
 
 func start():
@@ -35,7 +40,7 @@ func _notification(notif):
 	return;
 
 class _Internal:
-	var outer: Lobby;
+	var outer: LobbyV1;
 
 	var placeholder_players: Array[Player];
 	var turn_password: String = "";
@@ -44,7 +49,7 @@ class _Internal:
 	var polling = false;
 
 	# Called when the node enters the scene tree for the first time.
-	func _init(p_outer: Lobby, p_http_request: HTTPRequest):
+	func _init(p_outer: LobbyV1, p_http_request: HTTPRequest):
 		self.outer = p_outer;
 		self.http_request = p_http_request;
 		

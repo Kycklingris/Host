@@ -1,0 +1,22 @@
+[gd_scene load_steps=2 format=3 uid="uid://cb8o5v3cxto0h"]
+
+[ext_resource type="Script" path="res://addons/api/export_page.gd" id="1_7eql3"]
+
+[node name="Export" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_7eql3")
+
+[node name="Button" type="Button" parent="."]
+layout_mode = 2
+offset_left = 546.0
+offset_top = 308.0
+offset_right = 605.0
+offset_bottom = 339.0
+text = "Export"
+
+[connection signal="pressed" from="Button" to="." method="_on_button_pressed"]

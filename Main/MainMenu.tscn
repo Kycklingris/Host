@@ -4,17 +4,31 @@
 resource_name = "MainMenu"
 script/source = "extends Control
 
+const GameTile = preload(\"res://GameTile.tscn\")
+
+@onready var grid_container = $ScrollContainer/GridContainer
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
-	pass # Replace with function body.
+	for mod in ModUtility.mods:
+		self._add_mod(mod)
+	ModUtility.mod_loaded.connect(self._add_mod)
+	
+	return
+
+func _add_mod(mod: ModUtility.Mod):
+	var game_tile = GameTile.instantiate()
+	game_tile.set_mod(mod)
+	self.grid_container.add_child(game_tile)
+	return
 
 func _on_start_button_up():
 	#get_tree().change_scene_to_file(\"res://games/bingo/Main.tscn\");
-	pass
+	return
 
 func _on_quit_button_up():
-	pass # Replace with function body.
+	pass
+
 "
 
 [node name="Menu" type="Control"]
@@ -38,11 +52,6 @@ offset_bottom = 69.0
 grow_vertical = 2
 alignment = 1
 
-[node name="Start" type="Button" parent="VBoxContainer"]
-layout_mode = 2
-text = "Bingo
-"
-
 [node name="Settings" type="Button" parent="VBoxContainer"]
 layout_mode = 2
 text = "Settings"
@@ -51,5 +60,20 @@ text = "Settings"
 layout_mode = 2
 text = "Exit"
 
-[connection signal="button_up" from="VBoxContainer/Start" to="." method="_on_start_button_up"]
+[node name="ScrollContainer" type="ScrollContainer" parent="."]
+layout_mode = 1
+anchors_preset = 11
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -852.0
+grow_horizontal = 0
+grow_vertical = 2
+horizontal_scroll_mode = 0
+
+[node name="GridContainer" type="GridContainer" parent="ScrollContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+columns = 2
+
 [connection signal="button_up" from="VBoxContainer/Quit" to="." method="_on_quit_button_up"]
