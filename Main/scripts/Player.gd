@@ -1,54 +1,46 @@
-class_name Player 
+class_name PlayerV1
 extends Node
+var _internal: _Internal;
 
-signal _connected(Player);
-signal _sdp_complete();
-signal packet(magic: int, packet: PackedByteArray);
+#signal packet(magic: int, packet: PackedByteArray);
 
-@export var username: String = "";
+enum State { CREATED, GATHERING_SDP, SET_SDP, POLLING, WAITING_FOR_CONNECTION, CONNECTED, FAILED }
 
-var internal: _Internal;
-var http_request: HTTPRequest;
+var username: String:
+	get:
+		if self._internal != null && self._internal.current_state == State.CONNECTED:
+			return String(self._internal.username);
+		printerr("Tried to access player variable \"username\" before initialization");
+		return "";
+	set(_value):
+		pass;
 
 func _init(in_lobby_id: String, in_turn_username: String, in_turn_password: String, in_index: int):
-	self.internal = _Internal.new(in_lobby_id, in_turn_username, in_turn_password, in_index, self);
+	self._internal = _Internal.new(in_lobby_id, in_turn_username, in_turn_password, in_index, self);
+	self.add_child(self._internal);
 	return;
 
-func _ready():
-	self.http_request = HTTPRequest.new();
-	self.add_child(http_request);
-	self.internal.http_request = http_request;
-	
-	await self.internal._initialize();
+#func set_page(p_page: String):
+	#self._internal._set_page(p_page);
+	#return;
 
-func _process(delta):
-	self.internal._process(delta);
+func send_bytes(p_packet: PackedByteArray):
+	self._internal._send_packet(p_packet);
 	return;
 
-func set_page(p_page: String):
-	self.internal._set_page(p_page);
-	return;
 
-func set_text_content(p_selector: String, p_content: String):
-	self.internal._set_text_content(p_selector, p_content);
-	return;
-
-func send_packet(p_packet: PackedByteArray, wait_for_page: bool):
-	self.internal._send_packet(p_packet, wait_for_page);
-	return;
-
-func send_magic(magic: int, wait_for_page: bool):
-	self.internal._send_magic(magic, wait_for_page);
-	return;
-
-func prepend_and_send(magic: int, p_packet: PackedByteArray, wait_for_page: bool):
-	self.internal._prepend_and_send(magic, p_packet, wait_for_page);
+func prepend_and_send(magic: int, p_packet: PackedByteArray):
+	self._internal._prepend_and_send(magic, p_packet);
 	return;
 
 class _Internal:
-	var outer: Player;
-
-	enum State { CREATED, GATHERING_SDP, SET_SDP, POLLING, WAITING_FOR_CONNECTION, CONNECTED, FAILED }
+	extends Node
+	
+	signal _connected(PlayerV1);
+	signal _sdp_complete();
+	
+	var outer = PlayerV1;
+	
 	var current_state: State = State.CREATED;
 	var first_connection = true;
 
@@ -56,6 +48,7 @@ class _Internal:
 	var channel: _Channel;
 	var sdp: Dictionary = { "session": "", "iceCandidates": [] };
 
+	var username: String;
 	var lobby_id: String;
 	var turn_username: String;
 	var turn_password: String;
@@ -66,18 +59,19 @@ class _Internal:
 	var turn_urls = Globals.turn_urls;
 	var api_url = Globals.api_url;
 	
-	var current_page: String = "html/waiting.html";
-	var actual_current_page: String = "html/home.html";
-	var text_content: Array[String] = [];
-	var chached_packets: Array[PackedByteArray] = [];
-	
-	func _init(p_lobby_id: String, p_turn_username: String, p_turn_password: String, p_index: int, p_outer: Player):
+	func _init(p_lobby_id: String, p_turn_username: String, p_turn_password: String, p_index: int, p_outer: PlayerV1):
 		self.lobby_id = p_lobby_id;
 		self.turn_username = p_turn_username;
 		self.turn_password = p_turn_password;
 		self.index = p_index;
 		self.first_connection = true;
 		self.outer = p_outer;
+		return;
+	
+	func _ready():
+		self.http_request = HTTPRequest.new();
+		self.add_child(http_request);
+		self._initialize();
 		return;
 	
 	func _initialize():
@@ -105,7 +99,7 @@ class _Internal:
 		self.current_state = State.GATHERING_SDP;
 		self.peer.create_offer();
 		
-		await self.outer._sdp_complete;
+		await self._sdp_complete;
 		
 		self.http_request.request(Globals.CreateHTTPRequest(
 			Globals.api_url, 
@@ -178,7 +172,7 @@ class _Internal:
 		
 		if (self.current_state == State.GATHERING_SDP and gathering_state == WebRTCPeerConnection.GATHERING_STATE_COMPLETE):
 			self.current_state = State.SET_SDP;
-			self.outer._sdp_complete.emit();
+			self._sdp_complete.emit();
 		
 		if (self.current_state == State.WAITING_FOR_CONNECTION and connection_state == WebRTCPeerConnection.STATE_CONNECTED):
 			self.current_state = State.CONNECTED;
@@ -193,11 +187,10 @@ class _Internal:
 
 	func _on_connected():
 		if self.first_connection:
-			self._send_magic(_Channel._InternalMagicByte.USERNAME, false);
+			self._send_magic(_Channel._InternalMagicByte.USERNAME);
 		
-		self._set_page(self.current_page);
-		for text_change in self.text_content:
-			self._prepend_and_send(_Channel._InternalMagicByte.SETTEXTCONTENT, self.text_content.front(), true);
+		#for text_change in self.text_content:
+			#self._prepend_and_send(_Channel._InternalMagicByte.SETTEXTCONTENT, self.text_content.front());
 		return;
 	
 	func _on_packet(magic: int, packet: PackedByteArray):
@@ -206,25 +199,12 @@ class _Internal:
 		match magic:
 			_Channel._InternalMagicByte.USERNAME:
 				self.first_connection = false;
-				self.outer.username = packet.get_string_from_utf8();
-				self.outer._connected.emit(self.outer);
-				return;
-			_Channel._InternalMagicByte.SETPAGE:
-				self.actual_current_page = packet.get_string_from_utf8();
-				if self.actual_current_page == self.current_page:
-					self._send_cached();
+				self.username = packet.get_string_from_utf8();
+				self._connected.emit(self.outer);
 				return;
 			_:
-				self.outer.packet.emit(magic, packet);
+				#self.packet.emit(magic, packet);
 				return;
-		return;
-	
-	func _send_cached():
-		for packet in self.chached_packets:
-			self.channel._send_packet(packet);
-			
-		self.chached_packets = [];
-		return;
 	
 	func _on_ice_candidate(media, sdp_index, ice_name):
 		self.sdp["iceCandidates"].push_back({ "media": media, "index": sdp_index, "name": ice_name });
@@ -235,38 +215,23 @@ class _Internal:
 		self.sdp["session"] = session;
 		return; 
 	
-	func _set_page(p_page: String):
-		self.current_page = p_page;
-		self.text_content = [];
-		self.chached_packets = [];
-		self._prepend_and_send(_Channel._InternalMagicByte.SETPAGE, self.current_page.to_utf8_buffer(), false);
-		return;
-
-	func _set_text_content(p_selector: String, p_content: String):
-		self.text_content.push_front(p_selector + "|" + p_content);
-		self._prepend_and_send(_Channel._InternalMagicByte.SETTEXTCONTENT, self.text_content.front().to_utf8_buffer(), true);
-		return;
-	
-	func _send_packet(packet: PackedByteArray, wait_for_page: bool):
-		if wait_for_page and self.current_page != self.actual_current_page:
-			self.chached_packets.push_front(packet);
-			return;
+	func _send_packet(packet: PackedByteArray):
 		self.channel._send_packet(packet);
 		return;
 	
-	func _send_magic(magic: int, wait_for_page: bool):
+	func _send_magic(magic: int):
 		var packet = PackedByteArray();
 		packet.resize(4);
 		packet.encode_s32(0, magic);
-		self._send_packet(packet, wait_for_page);
+		self._send_packet(packet);
 		
-	func _prepend_and_send(magic: int, packet: PackedByteArray, wait_for_page: bool):
+	func _prepend_and_send(magic: int, packet: PackedByteArray):
 		var with_magic = PackedByteArray();
 		with_magic.resize(packet.size() + 4);
 		with_magic.encode_s32(0, magic);
 		for i in packet.size():
 			with_magic.set(i + 4, packet[i]);
-		self._send_packet(with_magic, wait_for_page);
+		self._send_packet(with_magic);
 		return;
 
 class _Channel:

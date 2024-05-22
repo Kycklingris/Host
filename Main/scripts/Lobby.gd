@@ -3,80 +3,128 @@ extends Node
 var _internal: _Internal;
 
 signal lobby_created;
-signal player_joined(player: Player);
+signal player_joined(player: PlayerV1);
 
-var id: String;
-var max_players: int = 0;
-var min_players: int = 0;
-var players: Array[Player];
-var has_started: bool = false;
-var game: String = "";
+var game: String:
+	get:
+		if self._internal != null:
+			return String(self._internal.game);
+		printerr("Tried to access lobby variable \"game\" before initialization");
+		return "";
+	set(_value):
+		pass;
+
+
+var min_players: int:
+	get:
+		if self._internal != null:
+			return self._internal.min_players;
+		printerr("Tried to access lobby variable \"min_players\" before initialization");
+		return 0;
+	set(_value):
+		pass;
+
+
+var max_players: int:
+	get:
+		if self._internal != null:
+			return self._internal.max_players;
+		printerr("Tried to access lobby variable \"max_players\" before initialization");
+		return 0;
+	set(_value):
+		pass;
+
+
+var players: Array[PlayerV1]:
+	get:
+		if self._internal != null:
+			return self._internal.players.duplicate(false);
+		printerr("Tried to access lobby variable \"players\" before initialization");
+		return [];
+	set(_value):
+		pass;
+
+
+var state: LobbyState:
+	get:
+		if self._internal != null:
+			return self._internal.current_state;
+		printerr("Tried to access lobby variable \"state\" before initialization");
+		return LobbyState.NOT_INITIALIZED;
+	set(_value):
+		pass;
 
 enum LobbyState { NOT_INITIALIZED, FAILED, LOBBY_CREATED, LOBBY_SDP_SET }
-var current_state: LobbyState = LobbyState.NOT_INITIALIZED;
 
-func _init(p_game: String, p_min_players: int, p_max_players: int, _allow_audience: bool):
-	self.game = p_game;
-	self.min_players = p_min_players;
-	self.max_players = p_max_players;
+func _init(p_game: String, p_min_players: int, p_max_players: int, allow_audience: bool):
+	self._internal = _Internal.new(p_game, p_min_players, p_max_players, allow_audience);
+	self.add_child(self._internal);
+	self._internal.player_joined.connect(func(player): self.player_joined.emit(player));
+	self._internal.lobby_created.connect(func(): self.lobby_created.emit());
 	return
 
-func _ready():
-	var http_request = HTTPRequest.new();
-	self.add_child(http_request);
-	self._internal = _Internal.new(self, http_request);
-	
-	self._internal._new_lobby(self.game, self.max_players, self.min_players);
-	return;
-
 func start():
-	self.has_started = true;
 	self._internal.start();
 	return;
 
-func _notification(notif):
-	if self._internal:
-		self._internal._notification(notif);
-	return;
-
 class _Internal:
-	var outer: LobbyV1;
+	extends Node
+	
+	signal lobby_created;
+	signal player_joined(player: PlayerV1);
+	
+	var id: String;
+	var min_players: int = 0;
+	var max_players: int = 0;
+	var players: Array[PlayerV1];
+	var has_started: bool = false;
+	var game: String = "";
+	
+	var current_state: LobbyState = LobbyState.NOT_INITIALIZED;
 
-	var placeholder_players: Array[Player];
+	var placeholder_players: Array[PlayerV1];
 	var turn_password: String = "";
 
 	var http_request: HTTPRequest = null;
 	var polling = false;
 
 	# Called when the node enters the scene tree for the first time.
-	func _init(p_outer: LobbyV1, p_http_request: HTTPRequest):
-		self.outer = p_outer;
-		self.http_request = p_http_request;
+	func _init(p_game: String, p_min_players: int, p_max_players: int, _allow_audience: bool):
+		self.game = p_game;
+		self.min_players = p_min_players;
+		self.max_players = p_max_players;
+		return;
 		
-		self.outer.get_tree().set_auto_accept_quit(false);
-		self.outer.tree_exiting.connect(self._exit_tree);
+	func _ready():
+		self.get_tree().set_auto_accept_quit(false);
+		self.tree_exiting.connect(self._exit_tree);
+		
+		self.http_request = HTTPRequest.new();
+		self.add_child(http_request);
+		
+		self._new_lobby();
 		return;
 	
-	func _notification(notif):
-		if notif == Node.NOTIFICATION_WM_CLOSE_REQUEST:
+	func _notification(what):
+		if what == Node.NOTIFICATION_WM_CLOSE_REQUEST:
 			await self._delete();
-			self.outer.get_tree().quit();
+			self.get_tree().quit();
 		return;
 	
 	func _exit_tree():
 		await self._delete();
-		self.outer.get_tree().set_auto_accept_quit(true);
+		self.get_tree().set_auto_accept_quit(true);
 		return;
 	
 	## Delete the lobby on server
 	func _delete():
-		if self.outer.current_state == LobbyState.NOT_INITIALIZED:
+		if self.current_state == LobbyState.NOT_INITIALIZED:
 			return;
 		self.http_request.request(Globals.CreateHTTPRequest(
 			Globals.api_url, 
 			"/api/Lobby/Delete", 
 			[
-				{ "name": "lobbyId", "value": self.outer.id }, 
+				{ "name": "lobbyId", "value": self.id }, 
 				{ "name": "turnPassword", "value": self.turn_password }
 			]), 
 			["accept: text/plain", "Content-Type: text/plain"], 
@@ -87,23 +135,28 @@ class _Internal:
 		print("Deleted lobby, Status Code: ", str(result[1]));
 		return;
 
-	func _new_lobby(game: String, maxPlayers: int, minPlayers: int):
+	func _set_state(state: LobbyState):
+		self.current_state = state;
+		print("Lobby state set to: " + LobbyState.keys()[state]);
+		return;
+
+	func _new_lobby():
 		#=========================================================================#
 		# Send "Create Lobby" request to the Web Server.
 		#=========================================================================#
-		http_request.request(Globals.CreateHTTPRequest(
+		self.http_request.request(Globals.CreateHTTPRequest(
 			Globals.api_url, 
 			"/api/Lobby/New", 
 			[
-				{ "name": "game", "value": game }, 
-				{ "name": "minPlayers", "value": str(minPlayers) }, 
-				{ "name": "maxPlayers", "value": str(maxPlayers) }
+				{ "name": "game", "value": self.game }, 
+				{ "name": "minPlayers", "value": str(self.min_players) }, 
+				{ "name": "maxPlayers", "value": str(self.max_players) }
 			]), 
 			["accept: text/plain", "Content-Type: text/plain"], 
 			HTTPClient.METHOD_POST
 		);
 		
-		var result = await http_request.request_completed; 
+		var result = await self.http_request.request_completed; 
 		
 		if result[0] != HTTPRequest.RESULT_SUCCESS:
 			push_error("Lobby could not be created.");
@@ -113,7 +166,7 @@ class _Internal:
 		var response_json = JSON.new();
 		var error = response_json.parse(body_string);
 		if error != OK:
-			self.outer.current_state = LobbyState.FAILED;
+			self._set_state(LobbyState.FAILED);
 			push_error(
 				"JSON Parse Error: ", 
 				response_json.get_error_message(), 
@@ -125,71 +178,76 @@ class _Internal:
 			return;
 		
 		var response = response_json.get_data();
+
+		self.id = response["id"];
+		self.turn_password = response["turnPassword"];
+		self.max_players = response["maxPlayers"];
+		self.min_players = response["minPlayers"];
 		
-		self.outer.id = response["id"];
-		turn_password = response["turnPassword"];
-		self.outer.max_players = response["maxPlayers"];
-		self.outer.min_players = response["minPlayers"];
-		
-		print(self.outer.id);
-		print(turn_password);
+		print(self.id);
+		print(self.turn_password);
 		
 		#=========================================================================#
 		# Spawn players and wait for Ice Candidates and Session to generate
 		#=========================================================================#
 		
 		var promise = Promise.new();
-		for i in self.outer.max_players:
-			var new_player = Player.new(self.outer.id, self.outer.id, turn_password, i);
-			self.outer.add_child(new_player);
+		for i in self.max_players:
+			var new_player = PlayerV1.new(self.id, self.id, turn_password, i);
+			self.add_child(new_player);
 			self.placeholder_players.push_back(new_player);
-			new_player._connected.connect(self._player_connected);
-			promise.append(new_player._sdp_complete);
+			new_player._internal._connected.connect(self._player_connected);
+			promise.append(new_player._internal._sdp_complete);
 		
 		await promise.completed;
+		self._set_state(LobbyState.LOBBY_SDP_SET);
 		
 		#=========================================================================#
 		# Set lobby state
 		#=========================================================================#
-		
 		await self.set_lobby_state(0);
 		
-		self.outer.current_state = LobbyState.LOBBY_CREATED;
+		self._set_state(LobbyState.LOBBY_CREATED);
+
 		self._lobby_created();
 		return;
 
 	func start():
-		if self.outer.has_started == true:
+		if self.has_started == true:
 			return;
 		
-		self.set_lobby_state(1);
+		await self.set_lobby_state(1);
 		
 		# Delete Placeholder players
 		for i in range(self.placeholder_players.size(), 0, -1):
-			if not self.outer.players.find(self.placeholder_players[i - 1]):
+			if not self.players.find(self.placeholder_players[i - 1]):
 				self.placeholder_players.remove_at(i - 1);
 		return;
 
 	func set_lobby_state(state: int):
+		if self.http_request.get_http_client_status() != 0:
+			await self.http_request.request_completed
+		
 		self.http_request.request(Globals.CreateHTTPRequest(
 			Globals.api_url, 
 			"/api/Lobby/SetState", 
 			[
-				{ "name": "lobbyId", "value": self.outer.id }, 
+				{ "name": "lobbyId", "value": self.id }, 
 				{ "name": "turnPassword", "value": self.turn_password }, 
 				{ "name": "state", "value": str(state) }
 			]), 
 			["accept: text/plain", "Content-Type: text/plain"], 
 			HTTPClient.METHOD_PATCH
 		);
-		await self.http_request.request_completed; 
+		await self.http_request.request_completed;
 		return;
 
-	func _player_connected(player: Player):
-		self.outer.players.push_back(player);
-		self.outer.player_joined.emit(player);
+	func _player_connected(player: PlayerV1):
+		print("Player joined: " + player.username);
+		self.players.push_back(player);
+		self.player_joined.emit(player);
 		return;
 
 	func _lobby_created():
-		self.outer.lobby_created.emit();
+		self.lobby_created.emit();
 		return;

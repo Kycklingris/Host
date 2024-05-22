@@ -8,7 +8,7 @@ extends Node
 var lobby;
 
 func _ready():
-	lobby = load("res://scripts/Lobby.gd").new(game, min_players, max_players, false)
+	lobby = load("res://scripts/Lobby.gd").new("game", 1, 10, false)
 	add_child(lobby);
-	lobby.start();
+	#lobby.start();
 	return

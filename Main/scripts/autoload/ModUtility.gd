@@ -29,7 +29,7 @@ func _load_mod(directory: String):
 		return
 	
 	var config = Config.new(config_file, mod_directory)
-	var mod = await Mod.new(mod_directory, config)
+	var mod = Mod.new(mod_directory, config)
 	self.mods.push_back(mod)
 	self.mod_loaded.emit(mod)
 	return
@@ -44,7 +44,7 @@ class Mod:
 		self.pck_path = "res://mods/" + str(p_config.id) + "/"
 		self.config = p_config
 		
-		await ProjectSettings.load_resource_pack(p_directory + "mod.pck")
+		ProjectSettings.load_resource_pack(p_directory + "mod.pck")
 		return
 	
 class Config:
