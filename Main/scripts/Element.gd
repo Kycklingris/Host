@@ -2,12 +2,21 @@ class_name ElementV1
 extends RefCounted
 var _internal: _Internal;
 
-func _init(tag: String,  attributes: Dictionary = {}):
-	self._internal = _Internal.new(self, tag, attributes);
+signal Event(event, data);
+signal Bytes(data);
+
+func _init(tag: String,  properties: Dictionary = {}):
+	self._internal = _Internal.new(self, tag, properties);
+	self._internal.Event.connect(func(event, data): self.Event.emit(event, data));
+	self._internal.Bytes.connect(func(data): self.Bytes.emit(data));
 	return;
 
 func add_children(children: Array[ElementV1]):
 	self._internal.add_children(children);
+	return;
+	
+func set_attribute(attribute: String, value: String):
+	self._internal.set_attribute(attribute, value);
 	return;
 
 class _Internal:
@@ -16,7 +25,7 @@ class _Internal:
 	var parent: ElementV1;
 	var player: PlayerV1._Internal;
 	
-	signal Event(data);
+	signal Event(event, data);
 	signal Bytes(data);
 	
 	var unique_id: String;
@@ -31,7 +40,7 @@ class _Internal:
 		self.tag = p_tag;
 		self.attributes = p_attributes;
 
-		self.unique_id = Globals.GetElementUniqueId();
+		self.unique_id = Globals.GetElementUniqueId(weakref(self));
 		return;
 	
 	func add_children(p_children: Array[ElementV1]):
@@ -70,8 +79,27 @@ class _Internal:
 		return;
 	
 	func set_attribute(attribute: String, value: String):
-		
-		return;
+		if self.is_root:
+			printerr("Cannot update attributes on root");
+			return;
+		if value == null:
+			self.attributes.erase(attribute);
+			if self.player == null:
+				return;
+			self.player.channel._prepend_and_send(PlayerV1._Channel._InternalMagicByte.UPDATE_ATTRIBUTE, JSON.stringify({
+				"unique_id": self.unique_id,
+				"attribute": attribute,
+			}).to_utf8_buffer());
+		else:
+			self.attributes[attribute] = value;
+			if self.player == null:
+				return;
+			self.player.channel._prepend_and_send(PlayerV1._Channel._InternalMagicByte.UPDATE_ATTRIBUTE, JSON.stringify({
+				"unique_id": self.unique_id,
+				"attribute": attribute,
+				"value": value,
+			}
+			).to_utf8_buffer());
 	
 	func request_data() -> Dictionary:
 		

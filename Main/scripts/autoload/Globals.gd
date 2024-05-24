@@ -15,6 +15,12 @@ func CreateHTTPRequest(base_url: String, path: String, parameters: Array):
 	return request;
 
 var element_unique_id: int = 0;
-func GetElementUniqueId() -> String:
+var elements = {};
+func GetElementUniqueId(element) -> String:
 	self.element_unique_id += 1;
-	return str(self.element_unique_id);
+	var unique_id = str(self.element_unique_id);
+	self.elements[unique_id] = element;
+	return unique_id;
+
+func GetElementFromUniqueId(unique_id: String) -> WeakRef:
+	return self.elements[unique_id];

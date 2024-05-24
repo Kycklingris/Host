@@ -214,6 +214,17 @@ class _Internal:
 				self.username = packet.get_string_from_utf8();
 				self._connected.emit(self.outer);
 				return;
+			_Channel._InternalMagicByte.LOCAL_EVENT:
+				var data = packet.get_string_from_utf8();
+				var json = JSON.new();
+				var error = json.parse(data);
+				if error != OK:
+					printerr("Unable to parse json of local event");
+					return;
+				var elem = Globals.GetElementFromUniqueId(json.data["unique_id"]).get_ref();
+				if elem != null:
+					elem.Event.emit(json.data["event"], json.data["data"]);
+				return;
 			_:
 				#self.packet.emit(magic, packet);
 				return;
@@ -229,7 +240,7 @@ class _Internal:
 
 
 class _Channel:
-	enum _InternalMagicByte { USERNAME = -1, BYTES = -2, EVENT = -3, ADD_CHILDREN = -4, DISCONNECT = -5, UPDATE_ATTRIBUTE = -6, REPARENT = -7, REQUEST_ATTRIBUTE = -8 };
+	enum _InternalMagicByte { USERNAME = -1, BYTES = -2, EVENT = -3, ADD_CHILDREN = -4, DISCONNECT = -5, UPDATE_ATTRIBUTE = -6, REPARENT = -7, REQUEST_ATTRIBUTE = -8, LOCAL_BYTES = -9, LOCAL_EVENT = -10 };
 	
 	signal _packet(int ,PackedByteArray);
 	
