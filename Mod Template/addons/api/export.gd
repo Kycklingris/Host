@@ -1,7 +1,6 @@
 class_name Export
 
 const files: Array[String] = [
-	"res://addons/api/lobby.gd",
 	"res://Main.tscn",
 ]
 

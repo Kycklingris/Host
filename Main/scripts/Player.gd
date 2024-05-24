@@ -15,22 +15,22 @@ var username: String:
 	set(_value):
 		pass;
 
+var root_element: ElementV1:
+	get:
+		if self._internal != null:
+			return self._internal.root_element;
+		printerr("Tried to access player variable \"username\" before initialization");
+		return null;
+	set(_value):
+		pass;
+
 func _init(in_lobby_id: String, in_turn_username: String, in_turn_password: String, in_index: int):
 	self._internal = _Internal.new(in_lobby_id, in_turn_username, in_turn_password, in_index, self);
 	self.add_child(self._internal);
 	return;
 
-#func set_page(p_page: String):
-	#self._internal._set_page(p_page);
-	#return;
-
 func send_bytes(p_packet: PackedByteArray):
 	self._internal._send_packet(p_packet);
-	return;
-
-
-func prepend_and_send(magic: int, p_packet: PackedByteArray):
-	self._internal._prepend_and_send(magic, p_packet);
 	return;
 
 class _Internal:
@@ -59,6 +59,8 @@ class _Internal:
 	var turn_urls = Globals.turn_urls;
 	var api_url = Globals.api_url;
 	
+	var root_element: ElementV1;
+	
 	func _init(p_lobby_id: String, p_turn_username: String, p_turn_password: String, p_index: int, p_outer: PlayerV1):
 		self.lobby_id = p_lobby_id;
 		self.turn_username = p_turn_username;
@@ -66,6 +68,10 @@ class _Internal:
 		self.index = p_index;
 		self.first_connection = true;
 		self.outer = p_outer;
+		
+		self.root_element = ElementV1.new("div");
+		self.root_element._internal.is_root = true;
+		self.root_element._internal._update_player(self);
 		return;
 	
 	func _ready():
@@ -187,14 +193,20 @@ class _Internal:
 
 	func _on_connected():
 		if self.first_connection:
-			self._send_magic(_Channel._InternalMagicByte.USERNAME);
+			self.channel._send_magic(_Channel._InternalMagicByte.USERNAME);
 		
-		#for text_change in self.text_content:
-			#self._prepend_and_send(_Channel._InternalMagicByte.SETTEXTCONTENT, self.text_content.front());
+		
+		var dict = self.root_element._internal.to_dict(true);
+		var data = JSON.stringify({
+			"parent": "root",
+			"children": dict["children"],
+		});
+		
+		self.channel._prepend_and_send(_Channel._InternalMagicByte.ADD_CHILDREN, data.to_utf8_buffer());
 		return;
 	
 	func _on_packet(magic: int, packet: PackedByteArray):
-		print("Magic: " + str(magic) + ", Packet: " + packet.get_string_from_utf8());
+		#print("Magic: " + str(magic) + ", Packet: " + packet.get_string_from_utf8());
 		
 		match magic:
 			_Channel._InternalMagicByte.USERNAME:
@@ -214,28 +226,10 @@ class _Internal:
 		self.peer.set_local_description(type, session);
 		self.sdp["session"] = session;
 		return; 
-	
-	func _send_packet(packet: PackedByteArray):
-		self.channel._send_packet(packet);
-		return;
-	
-	func _send_magic(magic: int):
-		var packet = PackedByteArray();
-		packet.resize(4);
-		packet.encode_s32(0, magic);
-		self._send_packet(packet);
-		
-	func _prepend_and_send(magic: int, packet: PackedByteArray):
-		var with_magic = PackedByteArray();
-		with_magic.resize(packet.size() + 4);
-		with_magic.encode_s32(0, magic);
-		for i in packet.size():
-			with_magic.set(i + 4, packet[i]);
-		self._send_packet(with_magic);
-		return;
+
 
 class _Channel:
-	enum _InternalMagicByte { USERNAME = -1, SETPAGE = -2, SETTEXTCONTENT = -3 };
+	enum _InternalMagicByte { USERNAME = -1, BYTES = -2, EVENT = -3, ADD_CHILDREN = -4, DISCONNECT = -5, UPDATE_ATTRIBUTE = -6, REPARENT = -7, REQUEST_ATTRIBUTE = -8 };
 	
 	signal _packet(int ,PackedByteArray);
 	
@@ -260,4 +254,19 @@ class _Channel:
 	
 	func _send_packet(packet: PackedByteArray):
 		self.channel.put_packet(packet);
+		return;
+		
+	func _send_magic(magic: int):
+		var packet = PackedByteArray();
+		packet.resize(4);
+		packet.encode_s32(0, magic);
+		self._send_packet(packet);
+		
+	func _prepend_and_send(magic: int, packet: PackedByteArray):
+		var with_magic = PackedByteArray();
+		with_magic.resize(packet.size() + 4);
+		with_magic.encode_s32(0, magic);
+		for i in packet.size():
+			with_magic.set(i + 4, packet[i]);
+		self._send_packet(with_magic);
 		return;

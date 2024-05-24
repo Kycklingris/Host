@@ -13,3 +13,8 @@ func CreateHTTPRequest(base_url: String, path: String, parameters: Array):
 	request = request.left(request.length() - 1)
 	
 	return request;
+
+var element_unique_id: int = 0;
+func GetElementUniqueId() -> String:
+	self.element_unique_id += 1;
+	return str(self.element_unique_id);

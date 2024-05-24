@@ -1,6 +1,26 @@
 [gd_scene load_steps=2 format=3 uid="uid://bublylsgrfc52"]
 
-[ext_resource type="Script" path="res://addons/api/lobby.gd" id="1_c5uhi"]
+[sub_resource type="GDScript" id="GDScript_02x4e"]
+script/source = "extends Control
+
+
+# Called when the node enters the scene tree for the first time.
+func _ready():
+	var lobby = LobbyV1.new(\"Game\", 1, 10, false);
+	self.add_child(lobby);
+	
+	lobby.player_joined.connect(self._player_joined);
+	return;
+
+func _player_joined(player: PlayerV1):
+	var root = player.root_element;
+	root.add_children([ElementV1.new(\"a\")])
+	return;
+
+# Called every frame. 'delta' is the elapsed time since the previous frame.
+func _process(delta):
+	pass
+"
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -9,9 +29,4 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-
-[node name="Lobby" type="Node" parent="."]
-script = ExtResource("1_c5uhi")
-game = "Bananer"
-min_players = 1
-max_players = 8
+script = SubResource("GDScript_02x4e")

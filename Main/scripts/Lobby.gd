@@ -2,12 +2,23 @@ class_name LobbyV1
 extends Node
 var _internal: _Internal;
 
+enum State { NOT_INITIALIZED, FAILED, LOBBY_CREATED, LOBBY_SDP_SET }
+
 signal lobby_created;
 signal player_joined(player: PlayerV1);
 
+var id: String:
+	get:
+		if self._internal != null && self._internal.id != null:
+			return String(self._internal.id);
+		printerr("Tried to access lobby variable \"id\" before initialization");
+		return "";
+	set(_value):
+		pass;
+
 var game: String:
 	get:
-		if self._internal != null:
+		if self._internal != null && self._internal.game != null:
 			return String(self._internal.game);
 		printerr("Tried to access lobby variable \"game\" before initialization");
 		return "";
@@ -17,7 +28,7 @@ var game: String:
 
 var min_players: int:
 	get:
-		if self._internal != null:
+		if self._internal != null && self._internal.min_players != null:
 			return self._internal.min_players;
 		printerr("Tried to access lobby variable \"min_players\" before initialization");
 		return 0;
@@ -27,7 +38,7 @@ var min_players: int:
 
 var max_players: int:
 	get:
-		if self._internal != null:
+		if self._internal != null && self._internal.max_players != null:
 			return self._internal.max_players;
 		printerr("Tried to access lobby variable \"max_players\" before initialization");
 		return 0;
@@ -37,7 +48,7 @@ var max_players: int:
 
 var players: Array[PlayerV1]:
 	get:
-		if self._internal != null:
+		if self._internal != null && self._internal.players != null:
 			return self._internal.players.duplicate(false);
 		printerr("Tried to access lobby variable \"players\" before initialization");
 		return [];
@@ -45,16 +56,15 @@ var players: Array[PlayerV1]:
 		pass;
 
 
-var state: LobbyState:
+var state: State:
 	get:
-		if self._internal != null:
+		if self._internal != null && self._internal.current_state != null:
 			return self._internal.current_state;
 		printerr("Tried to access lobby variable \"state\" before initialization");
-		return LobbyState.NOT_INITIALIZED;
+		return State.NOT_INITIALIZED;
 	set(_value):
 		pass;
 
-enum LobbyState { NOT_INITIALIZED, FAILED, LOBBY_CREATED, LOBBY_SDP_SET }
 
 func _init(p_game: String, p_min_players: int, p_max_players: int, allow_audience: bool):
 	self._internal = _Internal.new(p_game, p_min_players, p_max_players, allow_audience);
@@ -80,7 +90,7 @@ class _Internal:
 	var has_started: bool = false;
 	var game: String = "";
 	
-	var current_state: LobbyState = LobbyState.NOT_INITIALIZED;
+	var current_state: State = State.NOT_INITIALIZED;
 
 	var placeholder_players: Array[PlayerV1];
 	var turn_password: String = "";
@@ -118,7 +128,7 @@ class _Internal:
 	
 	## Delete the lobby on server
 	func _delete():
-		if self.current_state == LobbyState.NOT_INITIALIZED:
+		if self.current_state == State.NOT_INITIALIZED:
 			return;
 		self.http_request.request(Globals.CreateHTTPRequest(
 			Globals.api_url, 
@@ -135,9 +145,9 @@ class _Internal:
 		print("Deleted lobby, Status Code: ", str(result[1]));
 		return;
 
-	func _set_state(state: LobbyState):
+	func _set_state(state: State):
 		self.current_state = state;
-		print("Lobby state set to: " + LobbyState.keys()[state]);
+		print("Lobby state set to: " + State.keys()[state]);
 		return;
 
 	func _new_lobby():
@@ -166,7 +176,7 @@ class _Internal:
 		var response_json = JSON.new();
 		var error = response_json.parse(body_string);
 		if error != OK:
-			self._set_state(LobbyState.FAILED);
+			self._set_state(State.FAILED);
 			push_error(
 				"JSON Parse Error: ", 
 				response_json.get_error_message(), 
@@ -200,14 +210,14 @@ class _Internal:
 			promise.append(new_player._internal._sdp_complete);
 		
 		await promise.completed;
-		self._set_state(LobbyState.LOBBY_SDP_SET);
+		self._set_state(State.LOBBY_SDP_SET);
 		
 		#=========================================================================#
 		# Set lobby state
 		#=========================================================================#
 		await self.set_lobby_state(0);
 		
-		self._set_state(LobbyState.LOBBY_CREATED);
+		self._set_state(State.LOBBY_CREATED);
 
 		self._lobby_created();
 		return;
