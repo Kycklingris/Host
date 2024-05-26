@@ -1,8 +1,8 @@
 class_name Export
 
-const files: Array[String] = [
-	"res://Main.tscn",
-]
+#const files: Array[String] = [
+	#"res://Main.tscn",
+#]
 
 static func export():
 	var config = ConfigFile.new()
@@ -15,17 +15,19 @@ static func export():
 	var id = str(config.get_value("mod", "id"))
 	
 	var packer = PCKPacker.new()
-	packer.pck_start("res://export/mod.pck.tmp")
+	packer.pck_start("res://export/mod.pck")
 	
-	
+	var files: Array[String] = [];
+	get_files_recursively("res://mods/0", files);
+	get_files_recursively("res://.godot/imported", files);
 	for file in files:
-		var pck_path = file.replace("res://", "res://mods/" + id + "/")
-		packer.add_file(pck_path, file, false)
+		#var pck_path = file.replace("res://", "res://mods/" + id + "/")
+		packer.add_file(file, file, false)
 	
 	packer.flush(true);
-	_update_paths(id, files)
+	#_update_paths(id, files)
 	
-	DirAccess.remove_absolute("res://export/mod.pck.tmp")
+	#DirAccess.remove_absolute("res://export/mod.pck.tmp")
 	DirAccess.copy_absolute("res://mod.cfg", "res://export/mod.cfg")
 	
 	copy_dir_recursively("res://export/", "C:/Users/malte/AppData/Roaming/Godot/app_userdata/Host/mods/bingo/")
@@ -72,6 +74,16 @@ static func compare_bytes(original: PackedByteArray, new: PackedByteArray) -> bo
 		if original[i] != new[i]:
 			return false
 	return true
+
+static func get_files_recursively(source: String, files: Array[String]):
+	for directory in DirAccess.get_directories_at(source):
+		get_files_recursively(source + "/" + directory, files);
+	
+	for file in DirAccess.get_files_at(source):
+		#if file.get_extension() == "md5":
+			#continue;
+		files.push_back(source + "/" + file);
+	return;
 
 static func copy_dir_recursively(source: String, destination: String):
 	DirAccess.make_dir_recursive_absolute(destination)

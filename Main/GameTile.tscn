@@ -36,6 +36,8 @@ func _process(delta):
 
 
 func _on_texture_button_pressed():
+	#var scene = load(self.mod.pck_path + self.mod.config.scene).instantiate();
+	#get_tree().change_scene_to_packed(scene);
 	get_tree().change_scene_to_file(self.mod.pck_path + self.mod.config.scene)
 	return
 "

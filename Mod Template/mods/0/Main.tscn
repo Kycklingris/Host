@@ -1,0 +1,41 @@
+[gd_scene load_steps=3 format=3 uid="uid://bublylsgrfc52"]
+
+[ext_resource type="PackedScene" uid="uid://dqx3njimjyhnj" path="res://mods/0/Level.tscn" id="1_3cqyf"]
+
+[sub_resource type="GDScript" id="GDScript_02x4e"]
+script/source = "extends Node
+
+#var text = ElementV1.new(\"tpg-text\", { \"text\": str(self.number) });
+@onready var level = $Level
+
+# Called when the node enters the scene tree for the first time.
+func _ready():
+	var lobby = LobbyV1.new(\"Game\", 1, 10, false);
+	self.add_child(lobby);
+	
+	lobby.player_joined.connect(self._player_joined);
+	
+	#self.text.Event.connect(self._on_event);
+	return;
+
+func _player_joined(player):
+	print(player.username);
+	var child = preload(\"res://mods/0/Player.tscn\").instantiate().with_data(player);
+	level.add_child(child);
+	#var root = player.root_element;
+	#root.add_children([self.text]);
+	return;
+
+func _on_event(event, data):
+	return;
+
+# Called every frame. 'delta' is the elapsed time since the previous frame.
+func _process(delta):
+	#text.set_attribute(\"text\", str(Time.get_ticks_msec()));
+	pass
+"
+
+[node name="Main" type="Node"]
+script = SubResource("GDScript_02x4e")
+
+[node name="Level" parent="." instance=ExtResource("1_3cqyf")]
