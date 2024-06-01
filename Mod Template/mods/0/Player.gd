@@ -7,35 +7,34 @@ const JUMP_VELOCITY = -300.0
 # Get the gravity from the project settings to be synced with RigidBody nodes.
 var gravity = ProjectSettings.get_setting("physics/2d/default_gravity")
 
-var player: PlayerV1;
+var player: V1.Player;
 
-var left: ElementV1;
-var right: ElementV1;
-var jump: ElementV1
+var left: V1.Element;
+var right: V1.Element;
+var jump: V1.Element
 
 var left_held = false;
 var right_held = false;
 
 var jump_held = false;
 
-func with_data(p_player: PlayerV1):
+func with_data(p_player: V1.Player):
 	self.player = p_player;
-	self.left = ElementV1.new("v1-button", { "text" = "left", "keyboard_inputs" = "a,ArrowLeft" });
+	self.left = V1.Element.new("v1-button", { "text" = "left", "keyboard_inputs" = ["a","ArrowLeft"] });
 	self.left.Event.connect(func(e, d): 
-		print(e);
 		if e == "down":
 			self.left_held = true;
 		else:
 			self.left_held = false;
 	);
-	self.right = ElementV1.new("v1-button", { "text" = "right", "keyboard_inputs" = "d,ArrowRight"  });
+	self.right = V1.Element.new("v1-button", { "text" = "right", "keyboard_inputs" = ["d","ArrowRight"]  });
 	self.right.Event.connect(func(e, d):  
 		if e == "down":
 			self.right_held = true;
 		else:
 			self.right_held = false;
 	);
-	self.jump = ElementV1.new("v1-button", { "text" = "jump", "keyboard_inputs" = " ,w,ArrowUp"  });
+	self.jump = V1.Element.new("v1-button", { "text" = "jump", "keyboard_inputs" = [" ","w","ArrowUp"]  });
 	self.jump.Event.connect(func(e, d):  
 		if e == "down":
 			self.jump_held = true;

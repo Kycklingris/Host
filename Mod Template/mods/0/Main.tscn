@@ -10,7 +10,7 @@ script/source = "extends Node
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
-	var lobby = LobbyV1.new(\"Game\", 1, 10, false);
+	var lobby = V1.Lobby.new(\"Game\", 1, 10, false);
 	self.add_child(lobby);
 	
 	lobby.player_joined.connect(self._player_joined);
