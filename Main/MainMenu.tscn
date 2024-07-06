@@ -10,6 +10,12 @@ const GameTile = preload(\"res://GameTile.tscn\")
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
+	if OS.is_debug_build():
+		await get_tree().process_frame
+		#get_tree().change_scene_to_file()
+		get_tree().change_scene_to_file(\"res://debug/V1DebugScene.tscn\")
+		return
+	
 	for mod in ModUtility.mods:
 		self._add_mod(mod)
 	ModUtility.mod_loaded.connect(self._add_mod)

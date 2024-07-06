@@ -19,7 +19,7 @@ var elements = {};
 func GetElementUniqueId(element) -> String:
 	self.element_unique_id += 1;
 	var unique_id = str(self.element_unique_id);
-	self.elements[unique_id] = element;
+	self.elements[unique_id] = weakref(element);
 	return unique_id;
 
 func GetElementFromUniqueId(unique_id: String) -> WeakRef:

@@ -25,10 +25,6 @@ ModUtility="*res://scripts/autoload/ModUtility.gd"
 version_control/plugin_name="GitPlugin"
 version_control/autoload_on_startup=true
 
-[editor_plugins]
-
-enabled=PackedStringArray()
-
 [rendering]
 
 renderer/rendering_method="gl_compatibility"

@@ -1,0 +1,42 @@
+[gd_scene load_steps=3 format=3 uid="uid://cgcsdol6gqa5x"]
+
+[ext_resource type="Script" path="res://scripts/V1/Lobby.gd" id="1_pa61h"]
+
+[sub_resource type="GDScript" id="GDScript_rl0np"]
+script/source = "extends Node2D
+
+
+func _on_lobby_created():
+	$Control/RoomCode.text = %Lobby.id
+	return
+
+
+func _on_player_joined(player):
+	
+	return
+"
+
+[node name="V1DebugScene" type="Node2D"]
+script = SubResource("GDScript_rl0np")
+
+[node name="Lobby" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("1_pa61h")
+game = "DEBUG_GAME"
+max_players = 10
+
+[node name="Control" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="RoomCode" type="Label" parent="Control"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 23.0
+text = "CRigne
+"
+
+[connection signal="lobby_created" from="Lobby" to="." method="_on_lobby_created"]
+[connection signal="player_joined" from="Lobby" to="." method="_on_player_joined"]

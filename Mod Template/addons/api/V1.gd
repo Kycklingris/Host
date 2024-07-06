@@ -24,13 +24,11 @@ class Lobby:
 		set(_value):
 			pass;
 
-
 	var min_players: int:
 		get:
 			return 0;
 		set(_value):
 			pass;
-
 
 	var max_players: int:
 		get:
@@ -38,13 +36,11 @@ class Lobby:
 		set(_value):
 			pass;
 
-
 	var players: Array[V1.Player]:
 		get:
 			return [];
 		set(_value):
 			pass;
-
 
 	var state: State:
 		get:
@@ -54,10 +50,11 @@ class Lobby:
 
 
 	func _init(p_game: String, p_min_players: int, p_max_players: int, allow_audience: bool):
-		pass
+		return
 
 	func start():
-		pass;
+		self._internal.start();
+		return;
 
 class Player:
 	extends Node
@@ -83,19 +80,75 @@ class Player:
 		return;
 
 class Element:
-	extends RefCounted
+	extends Node2D
 
 	signal Event(event, data);
 	signal Bytes(data);
 
-	func _init(tag: String,  properties: Dictionary = {}):
-		return;
-
-	func add_children(children: Array[V1.Element]):
+	func _init(tag: String,  attributes: Dictionary = {}, children: Array[V1.Element] = []):
 		return;
 		
 	func set_attribute(attribute: String, value):
 		return;
-
-#class Elems:
 	
+	#=========================================================================#
+	# Custom Elements                                                         #
+	#=========================================================================#
+	
+	#class GridElement:
+		#extends V1.Element
+		#var rows: int:
+			#get:
+				#return rows;
+			#set(value):
+				#rows = value;
+				#pass;
+				#
+		#var columns: int:
+			#get:
+				#return columns;
+			#set(value):
+				#columns = value;
+				#pass;
+		#
+		#func _init(num_rows: int, num_columns: int, attributes: Dictionary = {}, children: Array[V1.Element] = []):
+			#return;
+	#
+	#
+	#class JoystickElement:
+		#extends V1.Element
+		#var x: float:
+			#get:
+				#return x;
+			#set(_value):
+				#printerr("Tried to assign a value to Joystick.x which is not allowed.");
+				#return;
+		#var y: float:
+			#get:
+				#return y;
+			#set(_value):
+				#printerr("Tried to assign a value to Joystick.y which is not allowed.");
+				#return;
+		#
+		#func _init(keyboard_inputs: Dictionary = { "up": [], "left": [], "down": [], "right": [] }, attributes: Dictionary = {}, children: Array[V1.Element] = []):
+			#return;
+		#
+		#func set_keyboard_input(keyboard_inputs: Dictionary = { "up": [], "left": [], "down": [], "right": [] }):
+			#return;
+		#
+		#
+	#class ButtonElement:
+		#extends V1.Element
+		#
+		#signal Down();
+		#signal Up();
+		#signal Pressed();
+		#
+		#func _init(text: String = "", keyboard_inputs: Array[String] = [], attributes: Dictionary = {}, children: Array[V1.Element] = []):
+			#return;
+		#
+		#func set_text(text: String = ""):
+			#return;
+		#
+		#func set_keyboard_inputs(keyboard_inputs: Array[String] = []):
+			#return;

@@ -20,29 +20,24 @@ var jump_held = false;
 
 func with_data(p_player: V1.Player):
 	self.player = p_player;
-	self.left = V1.Element.new("v1-button", { "text" = "left", "keyboard_inputs" = ["a","ArrowLeft"] });
-	self.left.Event.connect(func(e, d): 
-		if e == "down":
-			self.left_held = true;
-		else:
-			self.left_held = false;
-	);
-	self.right = V1.Element.new("v1-button", { "text" = "right", "keyboard_inputs" = ["d","ArrowRight"]  });
-	self.right.Event.connect(func(e, d):  
-		if e == "down":
-			self.right_held = true;
-		else:
-			self.right_held = false;
-	);
-	self.jump = V1.Element.new("v1-button", { "text" = "jump", "keyboard_inputs" = [" ","w","ArrowUp"]  });
-	self.jump.Event.connect(func(e, d):  
-		if e == "down":
-			self.jump_held = true;
-		else:
-			self.jump_held = false;
-	);
-	
-	self.player.root_element.add_children([self.left, self.right, self.jump]);
+	self.left = V1.Element.new("v1-test", {})
+	self.player.add_child(self.left);
+	#self.left = V1.Element.ButtonElement.new("left", ["a", "ArrowLeft"]);
+	#self.left.Down.connect(func(): self.left_held = true);
+	#self.left.Up.connect(func(): self.left_held = false);
+	#self.right = V1.Element.new("v1-button", { "text" = "right", "keyboard_inputs" = ["d","ArrowRight"]  });
+	#self.right.Event.connect(func(e, d):  
+		#if e == "down":
+			#self.right_held = true;
+		#else:
+			#self.right_held = false;
+	#);
+	#
+	#self.jump = V1.Element.ButtonElement.new("jump", [" ", "w", "ArrowUp"]);
+	#self.jump.Down.connect(func(): self.jump_held = true);
+	#self.jump.Up.connect(func(): self.jump_held = false);
+	#
+	#self.player.root_element.add_children([self.left, self.right, self.jump]);
 	return self;
 
 func _physics_process(delta):
